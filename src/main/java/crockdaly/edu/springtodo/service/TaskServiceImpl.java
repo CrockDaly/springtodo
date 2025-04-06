@@ -7,8 +7,11 @@ import crockdaly.edu.springtodo.mapper.TaskMapper;
 import crockdaly.edu.springtodo.model.TaskStatus;
 import crockdaly.edu.springtodo.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -33,7 +36,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public TaskDTO updateTask(Long id, TaskDTO taskDTO) {
         Task existingTask = taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
 
         taskMapper.updateEntityFromDto(taskDTO, existingTask);
         taskRepository.save(existingTask);
@@ -43,6 +46,9 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public void deleteTask(Long id) {
+        if (!taskRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found");
+        }
         taskRepository.deleteById(id);
     }
 
@@ -51,7 +57,7 @@ public class TaskServiceImpl implements TaskService {
         List<Task> tasks = taskRepository.findAllByStatusOrderByStatusAsc(status);
 
         if (tasks.isEmpty()) {
-            throw new RuntimeException("No tasks found with status " + status);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No tasks found with status: " + status);
         }
 
         return tasks.stream()

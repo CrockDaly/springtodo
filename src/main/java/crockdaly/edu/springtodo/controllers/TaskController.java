@@ -1,4 +1,4 @@
-package crockdaly.edu.springtodo.controller;
+package crockdaly.edu.springtodo.controllers;
 
 import crockdaly.edu.springtodo.dto.TaskDTO;
 import crockdaly.edu.springtodo.model.TaskStatus;
