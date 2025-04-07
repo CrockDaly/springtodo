@@ -3,7 +3,6 @@ package crockdaly.edu.springtodo.service;
 
 import crockdaly.edu.springtodo.dto.TaskDTO;
 import crockdaly.edu.springtodo.entity.Task;
-import crockdaly.edu.springtodo.mapper.TaskMapper;
 import crockdaly.edu.springtodo.model.TaskStatus;
 import crockdaly.edu.springtodo.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,16 +20,34 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TaskServiceImpl implements TaskService {
 
-
     private final TaskRepository taskRepository;
-    private final TaskMapper taskMapper;
+
+    public Task toEntity(TaskDTO taskDTO) {
+        Task task = new Task();
+        task.setTitle(taskDTO.getTitle());
+        task.setDescription(taskDTO.getDescription());
+        task.setDueDate(taskDTO.getDueDate());
+        task.setStatus(taskDTO.getStatus());
+
+        return task;
+    }
+
+    public TaskDTO toDto(Task task) {
+        TaskDTO taskDTO = new TaskDTO();
+        taskDTO.setTitle(task.getTitle());
+        taskDTO.setDescription(task.getDescription());
+        taskDTO.setDueDate(task.getDueDate());
+        taskDTO.setStatus(task.getStatus());
+
+        return taskDTO;
+    }
 
     @Override
     public TaskDTO createTask(TaskDTO taskDTO) {
-        Task task = taskMapper.toEntity(taskDTO);
+        Task task = toEntity(taskDTO);
         task.setStatus(Optional.ofNullable(taskDTO.getStatus()).orElse(TaskStatus.TODO));
 
-        return taskMapper.toDto(taskRepository.save(task));
+        return toDto(taskRepository.save(task));
     }
 
     @Override
@@ -38,10 +55,13 @@ public class TaskServiceImpl implements TaskService {
         Task existingTask = taskRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Task not found"));
 
-        taskMapper.updateEntityFromDto(taskDTO, existingTask);
-        taskRepository.save(existingTask);
+        existingTask.setTitle(taskDTO.getTitle());
+        existingTask.setDescription(taskDTO.getDescription());
+        existingTask.setDueDate(taskDTO.getDueDate());
+        existingTask.setStatus(taskDTO.getStatus());
 
-        return taskMapper.toDto(existingTask);
+        taskRepository.save(existingTask);
+        return toDto(existingTask);
     }
 
     @Override
@@ -61,28 +81,28 @@ public class TaskServiceImpl implements TaskService {
         }
 
         return tasks.stream()
-                .map(taskMapper::toDto)
+                .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<TaskDTO> sortByDueDate() {
        return taskRepository.findAllByOrderByDueDateAsc().stream()
-               .map(taskMapper::toDto)
+               .map(this::toDto)
                .collect(Collectors.toList());
     }
 
     @Override
     public List<TaskDTO> sortByStatus() {
         return taskRepository.findAllByOrderByStatusAsc().stream()
-                .map(taskMapper::toDto)
+                .map(this::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<TaskDTO> getAllTasks() {
         return taskRepository.findAll().stream()
-                .map(taskMapper::toDto)
+                .map(this::toDto)
                 .collect(Collectors.toList());
     }
 }
