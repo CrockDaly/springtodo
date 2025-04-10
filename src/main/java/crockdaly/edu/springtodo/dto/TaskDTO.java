@@ -24,6 +24,6 @@ public class TaskDTO {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate dueDate;
 
-    private TaskStatus status = TaskStatus.TODO;
+    private TaskStatus status;
 }
 

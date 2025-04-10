@@ -31,6 +31,6 @@ public class Task {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private TaskStatus status = TaskStatus.TODO;
+    private TaskStatus status;
 
 }
