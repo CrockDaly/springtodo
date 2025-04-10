@@ -1,11 +1,11 @@
-package crockdaly.edu.springtodo;
+package crockdaly.edu.springtodo.service;
 
 
 import crockdaly.edu.springtodo.dto.TaskDTO;
 import crockdaly.edu.springtodo.entity.Task;
+import crockdaly.edu.springtodo.mapper.TaskMapper;
 import crockdaly.edu.springtodo.model.TaskStatus;
 import crockdaly.edu.springtodo.repository.TaskRepository;
-import crockdaly.edu.springtodo.service.TaskServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +27,9 @@ public class TaskServiceImplTest {
     @Mock
     private TaskRepository taskRepository;
 
+    @Mock
+    private TaskMapper taskMapper;
+
     @InjectMocks
     private TaskServiceImpl taskService;
 
@@ -46,37 +49,36 @@ public class TaskServiceImplTest {
         taskDTO.setDescription("Test Description");
         taskDTO.setDueDate(LocalDate.parse("2025-12-12"));
         taskDTO.setStatus(TaskStatus.DONE);
+
     }
 
     @Test
     void testCreateTask() {
-        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        when(taskMapper.toEntity(taskDTO)).thenReturn(task);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(taskMapper.toDto(task)).thenReturn(taskDTO);
 
         TaskDTO createdTaskDTO = taskService.createTask(taskDTO);
 
-        verify(taskRepository, times(1)).save(any(Task.class));
+        verify(taskMapper).toEntity(taskDTO);
+        verify(taskRepository).save(task);
+        verify(taskMapper).toDto(task);
         assertNotNull(createdTaskDTO);
-        assertEquals("Test Title", createdTaskDTO.getTitle());
-        assertEquals("Test Description", createdTaskDTO.getDescription());
-        assertEquals(LocalDate.parse("2025-12-12"), createdTaskDTO.getDueDate());
-        assertEquals(TaskStatus.DONE, createdTaskDTO.getStatus());
+        assertEquals(taskDTO.getTitle(), createdTaskDTO.getTitle());
     }
 
     @Test
     void testUpdateTask() {
-
         when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
-        when(taskRepository.save(any(Task.class))).thenReturn(task);
+        when(taskRepository.save(task)).thenReturn(task);
+        when(taskMapper.toDto(task)).thenReturn(taskDTO);
 
         TaskDTO updatedTaskDTO = taskService.updateTask(1L, taskDTO);
 
-        verify(taskRepository, times(1)).findById(1L);
-        verify(taskRepository, times(1)).save(any(Task.class));
-        assertNotNull(updatedTaskDTO);
-        assertEquals("Test Title", updatedTaskDTO.getTitle());
-        assertEquals("Test Description", updatedTaskDTO.getDescription());
-        assertEquals(LocalDate.parse("2025-12-12"), updatedTaskDTO.getDueDate());
-        assertEquals(TaskStatus.DONE, updatedTaskDTO.getStatus());
+        verify(taskRepository).findById(1L);
+        verify(taskRepository).save(task);
+        verify(taskMapper).toDto(task);
+        assertEquals(taskDTO.getTitle(), updatedTaskDTO.getTitle());
     }
 
     @Test
@@ -84,6 +86,8 @@ public class TaskServiceImplTest {
         when(taskRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(ResponseStatusException.class, () -> taskService.updateTask(1L, taskDTO));
+        verify(taskRepository).findById(1L);
+        verify(taskMapper, never()).toDto(any());
     }
 
     @Test
@@ -92,7 +96,7 @@ public class TaskServiceImplTest {
 
         taskService.deleteTask(1L);
 
-        verify(taskRepository, times(1)).deleteById(1L);
+        verify(taskRepository).deleteById(1L);
     }
 
     @Test
@@ -100,59 +104,62 @@ public class TaskServiceImplTest {
         when(taskRepository.existsById(1L)).thenReturn(false);
 
         assertThrows(ResponseStatusException.class, () -> taskService.deleteTask(1L));
+        verify(taskRepository, never()).deleteById(anyLong());
     }
 
     @Test
     void testFilterByStatus() {
         when(taskRepository.findAllByStatusOrderByStatusAsc(TaskStatus.TODO)).thenReturn(List.of(task));
+        when(taskMapper.toDto(task)).thenReturn(taskDTO);
 
-        List<TaskDTO> tasks = taskService.filterByStatus(TaskStatus.TODO);
+        List<TaskDTO> result = taskService.filterByStatus(TaskStatus.TODO);
 
-        assertNotNull(tasks);
-        assertEquals(1, tasks.size());
-        assertEquals("Test Title", tasks.get(0).getTitle());
+        verify(taskRepository).findAllByStatusOrderByStatusAsc(TaskStatus.TODO);
+        verify(taskMapper).toDto(task);
+        assertEquals(1, result.size());
     }
 
     @Test
     void testFilterByStatusNotFound_ThrowsResponseStatusException() {
         when(taskRepository.findAllByStatusOrderByStatusAsc(TaskStatus.TODO)).thenReturn(List.of());
 
-        assertThrows(ResponseStatusException.class, () ->
-                taskService.filterByStatus(TaskStatus.TODO));
+        assertThrows(ResponseStatusException.class, () -> taskService.filterByStatus(TaskStatus.TODO));
     }
 
     @Test
     void sortByDueDate() {
         when(taskRepository.findAllByOrderByDueDateAsc()).thenReturn(List.of(task));
+        when(taskMapper.toDto(task)).thenReturn(taskDTO);
 
-        List<TaskDTO> tasks = taskService.sortByDueDate();
+        List<TaskDTO> result = taskService.sortByDueDate();
 
-        assertNotNull(tasks);
-        assertEquals(1, tasks.size());
-        assertEquals(LocalDate.parse("2025-12-12"), tasks.get(0).getDueDate());
+        verify(taskRepository).findAllByOrderByDueDateAsc();
+        verify(taskMapper).toDto(task);
+        assertEquals(1, result.size());
     }
 
     @Test
     void sortByStatus() {
         when(taskRepository.findAllByOrderByStatusAsc()).thenReturn(List.of(task));
+        when(taskMapper.toDto(task)).thenReturn(taskDTO);
 
-        List<TaskDTO> tasks = taskService.sortByStatus();
+        List<TaskDTO> result = taskService.sortByStatus();
 
-        assertNotNull(tasks);
-        assertEquals(1, tasks.size());
-        assertEquals(TaskStatus.DONE, tasks.get(0).getStatus());
+        verify(taskRepository).findAllByOrderByStatusAsc();
+        verify(taskMapper).toDto(task);
+        assertEquals(1, result.size());
     }
 
     @Test
     void testGetAllTasks() {
         when(taskRepository.findAll()).thenReturn(List.of(task));
+        when(taskMapper.toDto(task)).thenReturn(taskDTO);
 
-        List<TaskDTO> tasks = taskService.getAllTasks();
+        List<TaskDTO> result = taskService.getAllTasks();
 
-        assertNotNull(tasks);
-        assertEquals(1, tasks.size());
-        assertEquals("Test Title", tasks.get(0).getTitle());
+        verify(taskRepository).findAll();
+        verify(taskMapper).toDto(task);
+        assertEquals(1, result.size());
     }
-
 
 }
